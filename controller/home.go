@@ -9,21 +9,17 @@ import (
 type home struct{}
 
 func (h home) registerRoutes() {
-	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/", middleAuth(indexHandler))
 	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/logout", middleAuth(logoutHandler))
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	tpName := "index.html"
 	vop := vm.IndexViewModelOp{}
-	v := vop.GetVM()
-	templates["index.html"].Execute(w, v)
-}
-
-func check(username, password string) bool {
-	if username == "jonwzh" && password == "123123" {
-		return true
-	}
-	return false
+	username, _ := getSessionUser(r)
+	v := vop.GetVM(username)
+	templates[tpName].Execute(w, &v)
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,22 +33,20 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 		password := r.Form.Get("password")
-		if len(username) < 3 {
-			v.AddError("Username must be longer than 3 chars")
-		}
-
-		if len(password) < 6 {
-			v.AddError("Password must be longer than 6 chars")
-		}
-
-		if !check(username, password) {
-			v.AddError("Username or password is not correct, please try again")
+		if !vm.CheckLogin(username, password) {
+			v.AddError("Username or password is incorrect.")
 		}
 
 		if len(v.Errs) > 0 {
 			templates[tpName].Execute(w, &v)
 		} else {
+			setSessionUser(w, r, username)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 	}
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	clearSession(w, r)
+	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }

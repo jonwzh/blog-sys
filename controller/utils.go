@@ -1,13 +1,17 @@
 package controller
 
 import (
+	"errors"
+	"fmt"
 	"html/template"
 	"io/ioutil"
+	"net/http"
 	"os"
 )
 
-// PopulateTemplates func
-// Create map template name to template.Template
+// template
+
+// PopulateTemplates : Map template name to template.Template
 func PopulateTemplates() map[string]*template.Template {
 	const basePath = "templates"
 	result := make(map[string]*template.Template)
@@ -41,4 +45,44 @@ func PopulateTemplates() map[string]*template.Template {
 		}() // QUESTION: WHY DEFINE A SEPARATE FUNCTION
 	}
 	return result
+}
+
+// session
+
+func getSessionUser(r *http.Request) (string, error) {
+	var username string
+	session, err := store.Get(r, sessionName)
+	if err != nil {
+		return "", err
+	}
+
+	val := session.Values["user"]
+	fmt.Println("val: ", val)
+	username, ok := val.(string)
+	if !ok {
+		return "", errors.New("Failed to get user from the session")
+	}
+	fmt.Println("username: ", username)
+	return username, nil
+}
+
+func setSessionUser(w http.ResponseWriter, r *http.Request, username string) error {
+	session, err := store.Get(r, sessionName)
+	if err != nil {
+		return err
+	}
+	session.Values["user"] = username
+	err = session.Save(r, w)
+	return err
+}
+
+func clearSession(w http.ResponseWriter, r *http.Request) error {
+	session, err := store.Get(r, sessionName)
+	if err != nil {
+		return err
+	}
+	session.Options.MaxAge = -1 // clear the session
+
+	err = session.Save(r, w)
+	return err
 }
