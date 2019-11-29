@@ -95,7 +95,7 @@ func clearSession(w http.ResponseWriter, r *http.Request) error {
 func checkLen(fieldname, fieldvalue string, minLen, maxLen int) string {
 	lenField := len(fieldname)
 	if lenField < minLen || lenField > maxLen {
-		return fmt.Sprintf("%s is not valid, the length must be between &d and %d", fieldname, minLen, maxLen)
+		return fmt.Sprintf("%s is not valid, the length must be between %d and %d", fieldname, minLen, maxLen)
 	}
 	return ""
 }
